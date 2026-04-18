@@ -1,39 +1,9 @@
-{
-  "version": 2,
-  "name": "abmi-institute",
-  "buildCommand": null,
-  "outputDirectory": "public",
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
-      ]
-    },
-    {
-      "source": "/(.*)\\.(html|css|js|svg|png|jpg|webp|woff2)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/index.html",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/brief",
-      "destination": "mailto:brief@abmi.institute",
-      "permanent": false
-    }
-  ]
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/0.9">
+  <url>
+    <loc>https://abmi.institute/</loc>
+    <lastmod>2025-04-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
