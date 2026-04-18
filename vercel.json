@@ -1,118 +1,24 @@
-# AI Brand Memory Institute — abmi.institute
-
-> The standard for AI brand memory.
-
----
-
-## Deployment auf Vercel (5 Minuten)
-
-### Option A — Vercel CLI (empfohlen)
-
-```bash
-# 1. Node.js installieren (falls nicht vorhanden)
-#    https://nodejs.org
-
-# 2. Vercel CLI installieren
-npm install -g vercel
-
-# 3. In diesen Ordner navigieren
-cd abmi-site
-
-# 4. Deployen (beim ersten Mal: Login via Browser)
-vercel
-
-# 5. Für Production:
-vercel --prod
-```
-
-Vercel gibt dir eine URL wie `abmi-institute.vercel.app` — die funktioniert sofort.
-
----
-
-### Option B — GitHub + Vercel (für automatische Deployments)
-
-1. **GitHub Repo erstellen**
-   - Gehe zu github.com → New Repository
-   - Name: `abmi-institute`
-   - Private oder Public (beides funktioniert)
-
-2. **Code pushen**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial launch"
-   git remote add origin https://github.com/DEIN-NAME/abmi-institute.git
-   git push -u origin main
-   ```
-
-3. **Vercel verbinden**
-   - Gehe zu vercel.com → New Project
-   - GitHub-Repo auswählen
-   - **Framework Preset:** `Other`
-   - **Output Directory:** `public`
-   - → Deploy
-
-Ab jetzt: jeder `git push` = automatisches Deployment. ✓
-
----
-
-## Custom Domain: abmi.institute
-
-### Domain kaufen
-Empfehlung: **Cloudflare Registrar** (cloudflare.com/registrar)
-- Günstigster Preis für `.institute` TLD
-- Keine versteckten Gebühren
-- DNS direkt in Cloudflare verwaltbar
-
-### Domain in Vercel verknüpfen
-
-1. Vercel Dashboard → Dein Projekt → Settings → Domains
-2. `abmi.institute` eingeben → Add
-3. Vercel zeigt dir zwei DNS-Records:
-   ```
-   Typ    Name    Wert
-   A      @       76.76.21.21
-   CNAME  www     cname.vercel-dns.com
-   ```
-4. Diese Records in Cloudflare DNS eintragen
-5. Nach 5–10 Minuten: ✓ Live auf abmi.institute
-
----
-
-## E-Mail: brief@abmi.institute
-
-### Cloudflare Email Routing (kostenlos)
-
-1. Cloudflare Dashboard → deine Domain → Email → Email Routing
-2. "Add address" → `brief@abmi.institute`
-3. Weiterleitungsziel: deine persönliche E-Mail
-4. Fertig — keine eigene E-Mail-Infrastruktur nötig
-
----
-
-## Projektstruktur
-
-```
-abmi-site/
-├── public/
-│   ├── index.html      ← Die komplette Website
-│   ├── robots.txt      ← SEO
-│   └── sitemap.xml     ← SEO
-├── vercel.json         ← Vercel-Konfiguration (Headers, Redirects)
-├── package.json        ← Projekt-Metadaten
-└── README.md           ← Diese Datei
-```
-
----
-
-## Nächste Schritte nach Launch
-
-- [ ] Domain `abmi.institute` bei Cloudflare registrieren
-- [ ] E-Mail `brief@abmi.institute` via Cloudflare Email Routing einrichten
-- [ ] Google Search Console: Domain verifizieren + Sitemap einreichen
-- [ ] Erste Research-Seite / Report als `/report` hinzufügen
-- [ ] Analytics: Vercel Analytics (kostenlos, DSGVO-konform) aktivieren
-
----
-
-*AI Brand Memory Institute · Does AI know your brand?*
+{
+  "version": 2,
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ]
+}
