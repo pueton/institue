@@ -1,8 +1,5 @@
-export const config = { runtime: 'nodejs' };
+module.exports = async function handler(req, res) {
 
-export default async function handler(req, res) {
-
-  // ── CORS ────────────────────────────────────────────────────
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -10,35 +7,29 @@ export default async function handler(req, res) {
   if (req.method !== 'POST')
     return res.status(405).json({ error: 'Method not allowed' });
 
-  // ── INPUT VALIDATION ────────────────────────────────────────
   const { brand, market = 'global' } = req.body || {};
   if (!brand || brand.trim().length < 2)
-    return res.status(400).json({ error: 'Brand name required (min. 2 characters).' });
+    return res.status(400).json({ error: 'Brand name required.' });
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const OPENAI_KEY    = process.env.OPENAI_API_KEY;
 
-  // ── TEMPORARY DEBUG ─────────────────────────────────────────
-  console.log('ANTHROPIC present:', !!ANTHROPIC_KEY);
-  console.log('OPENAI present:', !!OPENAI_KEY);
-  const foundKeys = Object.keys(process.env).filter(k => k.includes('API') || k.includes('KEY'));
-  console.log('Env API keys found:', foundKeys);
-
-  if (!ANTHROPIC_KEY || !OPENAI_KEY)
+  if (!ANTHROPIC_KEY || !OPENAI_KEY) {
     return res.status(500).json({
       error: 'API keys not configured.',
       debug: {
         anthropic: !!ANTHROPIC_KEY,
         openai: !!OPENAI_KEY,
-        found_keys: foundKeys
+        found_keys: Object.keys(process.env).filter(k =>
+          k.includes('API') || k.includes('KEY') || k.includes('ANTHROPIC') || k.includes('OPENAI')
+        )
       }
     });
+  }
 
   const brandClean = brand.trim();
 
-  // ── LLM CALL HELPERS ────────────────────────────────────────
-
-  async function callClaude(prompt, maxTokens = 300) {
+  async function callClaude(prompt, maxTokens) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -48,182 +39,113 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: maxTokens,
+        max_tokens: maxTokens || 300,
         messages: [{ role: 'user', content: prompt }]
       })
     });
-    if (!r.ok) throw new Error(`Claude error: ${r.status}`);
+    if (!r.ok) throw new Error('Claude error: ' + r.status);
     const d = await r.json();
-    return d.content?.[0]?.text?.trim() || '';
+    return (d.content && d.content[0] && d.content[0].text) ? d.content[0].text.trim() : '';
   }
 
-  async function callOpenAI(prompt, maxTokens = 300) {
+  async function callOpenAI(prompt, maxTokens) {
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_KEY}`,
+        'Authorization': 'Bearer ' + OPENAI_KEY,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        max_tokens: maxTokens,
+        max_tokens: maxTokens || 300,
         messages: [{ role: 'user', content: prompt }]
       })
     });
-    if (!r.ok) throw new Error(`OpenAI error: ${r.status}`);
+    if (!r.ok) throw new Error('OpenAI error: ' + r.status);
     const d = await r.json();
-    return d.choices?.[0]?.message?.content?.trim() || '';
+    return (d.choices && d.choices[0] && d.choices[0].message) ? d.choices[0].message.content.trim() : '';
   }
 
-  // ── PROMPT TEMPLATES ────────────────────────────────────────
-
-  const categoryPrompt =
-    `What industry or product category is the brand "${brandClean}" in? ` +
-    `Answer in 3-6 words only. If completely unknown, answer exactly: unknown brand`;
-
-  function staticPrompt(model) {
-    return (
-      `You are a brand knowledge assessor for ${model}.\n` +
-      `Rate how deeply the brand "${brandClean}" is encoded in your training data ` +
-      `on a scale from 0 to 100:\n` +
-      `  0   = completely unknown\n` +
-      `  30  = recognised name, minimal documented information\n` +
-      `  60  = moderately documented\n` +
-      `  85  = well documented globally\n` +
-      `  100 = exhaustively documented\n\n` +
-      `Respond with a SINGLE integer between 0 and 100. Nothing else.`
-    );
-  }
-
-  function dynamicPrompt(category) {
-    const isUnknown = category.toLowerCase().includes('unknown');
-    if (isUnknown) {
-      return (
-        `List the 7 most recommended global brands right now. ` +
-        `One brand per line, format exactly: "1. BrandName"`
-      );
-    }
-    return (
-      `A business professional asks: ` +
-      `"Which brands should I consider in the ${category} space?" ` +
-      `List your top 7 recommendations. ` +
-      `One brand per line, format exactly: "1. BrandName". No explanations.`
-    );
-  }
-
-  // ── SCORING HELPERS ─────────────────────────────────────────
-
-  function parseDynamicRank(responseText, brandName) {
-    const lines = responseText.split('\n').filter(l => l.trim());
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].toLowerCase().includes(brandName.toLowerCase())) {
-        return i + 1;
-      }
+  function parseDynamicRank(text, name) {
+    const lines = text.split('\n').filter(function(l) { return l.trim(); });
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].toLowerCase().includes(name.toLowerCase())) return i + 1;
     }
     return -1;
   }
 
   function rankToScore(rank, isUnknown) {
     if (rank === -1) return isUnknown ? 5 : 15;
-    const table = { 1: 95, 2: 83, 3: 72, 4: 62, 5: 52, 6: 42, 7: 32 };
+    var table = { 1: 95, 2: 83, 3: 72, 4: 62, 5: 52, 6: 42, 7: 32 };
     return table[rank] || 25;
   }
 
-  function toGvsScale(score0to100) {
-    return Math.round(score0to100) / 10;
-  }
-
-  // ── MAIN EXECUTION ──────────────────────────────────────────
   try {
+    var categoryPrompt =
+      'What industry or product category is the brand "' + brandClean + '" in? ' +
+      'Answer in 3-6 words only. If completely unknown, answer exactly: unknown brand';
 
-    const category = await callClaude(categoryPrompt, 40);
-    const isUnknown = category.toLowerCase().includes('unknown');
+    var category = await callClaude(categoryPrompt, 40);
+    var isUnknown = category.toLowerCase().includes('unknown');
 
-    const [
-      claudeStaticRaw,
-      openaiStaticRaw,
-      claudeDynamicRaw,
-      openaiDynamicRaw
-    ] = await Promise.all([
-      callClaude(staticPrompt('Claude'), 10),
-      callOpenAI(staticPrompt('GPT-4o'), 10),
-      callClaude(dynamicPrompt(category), 220),
-      callOpenAI(dynamicPrompt(category), 220)
+    var dynPrompt = isUnknown
+      ? 'List the 7 most recommended global brands right now. One per line: "1. BrandName"'
+      : 'A professional asks: "Which brands do you recommend in the ' + category + ' space?" ' +
+        'List top 7. One per line: "1. BrandName". No explanations.';
+
+    var staPromptC =
+      'Rate how deeply "' + brandClean + '" is encoded in your training data, 0-100. ' +
+      '0=unknown, 50=moderately known, 100=exhaustively documented. ' +
+      'Respond with a SINGLE integer only.';
+
+    var results = await Promise.all([
+      callClaude(staPromptC, 10),
+      callOpenAI(staPromptC, 10),
+      callClaude(dynPrompt, 220),
+      callOpenAI(dynPrompt, 220)
     ]);
 
-    const claudeStatic = Math.min(100, Math.max(0,
-      parseInt(claudeStaticRaw.replace(/\D/g, '')) || 0
-    ));
-    const openaiStatic = Math.min(100, Math.max(0,
-      parseInt(openaiStaticRaw.replace(/\D/g, '')) || 0
-    ));
-    const staticAvg = (claudeStatic + openaiStatic) / 2;
+    var cs = Math.min(100, Math.max(0, parseInt(results[0].replace(/\D/g,'')) || 0));
+    var os = Math.min(100, Math.max(0, parseInt(results[1].replace(/\D/g,'')) || 0));
+    var staticAvg  = (cs + os) / 2;
 
-    const claudeRank     = parseDynamicRank(claudeDynamicRaw, brandClean);
-    const openaiRank     = parseDynamicRank(openaiDynamicRaw, brandClean);
-    const claudeDynScore = rankToScore(claudeRank, isUnknown);
-    const openaiDynScore = rankToScore(openaiRank, isUnknown);
-    const dynamicAvg     = (claudeDynScore + openaiDynScore) / 2;
+    var cr = parseDynamicRank(results[2], brandClean);
+    var or2 = parseDynamicRank(results[3], brandClean);
+    var dynamicAvg = (rankToScore(cr, isUnknown) + rankToScore(or2, isUnknown)) / 2;
 
-    const gvsStatic  = toGvsScale(staticAvg);
-    const gvsDynamic = toGvsScale(dynamicAvg);
-    const gap        = Math.round((gvsDynamic - gvsStatic) * 10) / 10;
+    var gvsStatic  = Math.round(staticAvg)  / 10;
+    var gvsDynamic = Math.round(dynamicAvg) / 10;
+    var gap        = Math.round((gvsDynamic - gvsStatic) * 10) / 10;
 
-    const breakdown = {
-      claude: {
-        static: toGvsScale(claudeStatic),
-        dynamic: toGvsScale(claudeDynScore),
-        dynamic_rank: claudeRank === -1 ? 'not mentioned' : `#${claudeRank}`
-      },
-      openai: {
-        static: toGvsScale(openaiStatic),
-        dynamic: toGvsScale(openaiDynScore),
-        dynamic_rank: openaiRank === -1 ? 'not mentioned' : `#${openaiRank}`
-      }
-    };
-
-    let interpretation;
+    var interpretation;
     if (isUnknown) {
-      interpretation =
-        `"${brandClean}" is not yet well-represented in AI training data. ` +
-        `This is an early-mover opportunity.`;
+      interpretation = '"' + brandClean + '" is not yet well-represented in AI training data. Early-mover opportunity.';
     } else if (gap <= -3) {
-      interpretation =
-        `${brandClean} shows a significant negative Inference Gap of ${gap}. ` +
-        `Both models have strong recall but the brand underperforms in spontaneous recommendation contexts.`;
+      interpretation = brandClean + ' shows a significant Inference Gap of ' + gap + '. AI knows the brand but does not proactively recommend it.';
     } else if (gap < 0) {
-      interpretation =
-        `${brandClean} has a moderate Inference Gap of ${gap}. ` +
-        `AI recall is stronger than spontaneous recommendation — common for established brands.`;
+      interpretation = brandClean + ' has a moderate Inference Gap of ' + gap + '. Common for established brands with strong legacy presence.';
     } else if (gap < 1.5) {
-      interpretation =
-        `${brandClean} shows a balanced GVS profile. ` +
-        `AI recall and spontaneous recommendation are closely aligned.`;
+      interpretation = brandClean + ' shows a balanced GVS profile — AI recall and recommendation are closely aligned.';
     } else {
-      interpretation =
-        `${brandClean} shows a positive Inference Gap of +${gap}. ` +
-        `Both models recommend the brand spontaneously at higher rates than parametric recall alone predicts.`;
+      interpretation = brandClean + ' shows a positive Inference Gap of +' + gap + '. Strong spontaneous recommendation signal.';
     }
 
     return res.status(200).json({
       brand: brandClean,
-      category,
-      market,
+      category: category,
+      market: market,
       gvs_static:    gvsStatic,
       gvs_dynamic:   gvsDynamic,
       inference_gap: gap,
-      breakdown,
-      interpretation,
-      methodology:
-        'IBSR GVS Preview — spontaneous inference method, averaged across Claude and GPT-4o. ' +
-        'Full report: 3 LLMs x 5 markets x 50+ probes. Available on request.'
+      breakdown: {
+        claude: { static: Math.round(cs)/10, dynamic: Math.round(rankToScore(cr,isUnknown))/10, rank: cr === -1 ? 'not mentioned' : '#' + cr },
+        openai: { static: Math.round(os)/10, dynamic: Math.round(rankToScore(or2,isUnknown))/10, rank: or2 === -1 ? 'not mentioned' : '#' + or2 }
+      },
+      interpretation: interpretation,
+      methodology: 'IBSR GVS Preview — spontaneous inference, averaged across Claude and GPT-4o. Full report available on request.'
     });
 
   } catch (err) {
-    console.error('[IBSR scan error]', err);
-    return res.status(500).json({
-      error: 'Scan failed. Please try again.',
-      detail: err.message
-    });
+    return res.status(500).json({ error: 'Scan failed.', detail: err.message });
   }
-}
+};
