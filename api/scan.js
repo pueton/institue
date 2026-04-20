@@ -14,18 +14,8 @@ module.exports = async function handler(req, res) {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const OPENAI_KEY    = process.env.OPENAI_API_KEY;
 
-  if (!ANTHROPIC_KEY || !OPENAI_KEY) {
-    return res.status(500).json({
-      error: 'API keys not configured.',
-      debug: {
-        anthropic: !!ANTHROPIC_KEY,
-        openai: !!OPENAI_KEY,
-        found_keys: Object.keys(process.env).filter(k =>
-          k.includes('API') || k.includes('KEY') || k.includes('ANTHROPIC') || k.includes('OPENAI')
-        )
-      }
-    });
-  }
+  if (!ANTHROPIC_KEY || !OPENAI_KEY)
+    return res.status(500).json({ error: 'Configuration error. Please try again later.' });
 
   const brandClean = brand.trim();
 
@@ -93,14 +83,14 @@ module.exports = async function handler(req, res) {
       : 'A professional asks: "Which brands do you recommend in the ' + category + ' space?" ' +
         'List top 7. One per line: "1. BrandName". No explanations.';
 
-    var staPromptC =
+    var staPrompt =
       'Rate how deeply "' + brandClean + '" is encoded in your training data, 0-100. ' +
       '0=unknown, 50=moderately known, 100=exhaustively documented. ' +
       'Respond with a SINGLE integer only.';
 
     var results = await Promise.all([
-      callClaude(staPromptC, 10),
-      callOpenAI(staPromptC, 10),
+      callClaude(staPrompt, 10),
+      callOpenAI(staPrompt, 10),
       callClaude(dynPrompt, 220),
       callOpenAI(dynPrompt, 220)
     ]);
@@ -109,7 +99,7 @@ module.exports = async function handler(req, res) {
     var os = Math.min(100, Math.max(0, parseInt(results[1].replace(/\D/g,'')) || 0));
     var staticAvg  = (cs + os) / 2;
 
-    var cr = parseDynamicRank(results[2], brandClean);
+    var cr  = parseDynamicRank(results[2], brandClean);
     var or2 = parseDynamicRank(results[3], brandClean);
     var dynamicAvg = (rankToScore(cr, isUnknown) + rankToScore(or2, isUnknown)) / 2;
 
@@ -138,14 +128,23 @@ module.exports = async function handler(req, res) {
       gvs_dynamic:   gvsDynamic,
       inference_gap: gap,
       breakdown: {
-        claude: { static: Math.round(cs)/10, dynamic: Math.round(rankToScore(cr,isUnknown))/10, rank: cr === -1 ? 'not mentioned' : '#' + cr },
-        openai: { static: Math.round(os)/10, dynamic: Math.round(rankToScore(or2,isUnknown))/10, rank: or2 === -1 ? 'not mentioned' : '#' + or2 }
+        claude: {
+          static:  Math.round(cs) / 10,
+          dynamic: Math.round(rankToScore(cr,  isUnknown)) / 10,
+          rank:    cr  === -1 ? 'not mentioned' : '#' + cr
+        },
+        openai: {
+          static:  Math.round(os) / 10,
+          dynamic: Math.round(rankToScore(or2, isUnknown)) / 10,
+          rank:    or2 === -1 ? 'not mentioned' : '#' + or2
+        }
       },
       interpretation: interpretation,
       methodology: 'IBSR GVS Preview — spontaneous inference, averaged across Claude and GPT-4o. Full report available on request.'
     });
 
   } catch (err) {
-    return res.status(500).json({ error: 'Scan failed.', detail: err.message });
+    console.error('[scan error]', err);
+    return res.status(500).json({ error: 'Scan failed. Please try again.', detail: err.message });
   }
 };
