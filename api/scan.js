@@ -3,7 +3,7 @@ export const config = { runtime: 'nodejs' };
 export default async function handler(req, res) {
 
   // ── CORS ────────────────────────────────────────────────────
-  res.setHeader('Access-Control-Allow-Origin', 'https://ibsr.institute');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -18,8 +18,21 @@ export default async function handler(req, res) {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const OPENAI_KEY    = process.env.OPENAI_API_KEY;
 
+  // ── TEMPORARY DEBUG ─────────────────────────────────────────
+  console.log('ANTHROPIC present:', !!ANTHROPIC_KEY);
+  console.log('OPENAI present:', !!OPENAI_KEY);
+  const foundKeys = Object.keys(process.env).filter(k => k.includes('API') || k.includes('KEY'));
+  console.log('Env API keys found:', foundKeys);
+
   if (!ANTHROPIC_KEY || !OPENAI_KEY)
-    return res.status(500).json({ error: 'API keys not configured.' });
+    return res.status(500).json({
+      error: 'API keys not configured.',
+      debug: {
+        anthropic: !!ANTHROPIC_KEY,
+        openai: !!OPENAI_KEY,
+        found_keys: foundKeys
+      }
+    });
 
   const brandClean = brand.trim();
 
@@ -66,8 +79,7 @@ export default async function handler(req, res) {
 
   const categoryPrompt =
     `What industry or product category is the brand "${brandClean}" in? ` +
-    `Answer in 3–6 words only — e.g. "enterprise CRM software" or "luxury automotive". ` +
-    `If completely unknown, answer exactly: unknown brand`;
+    `Answer in 3-6 words only. If completely unknown, answer exactly: unknown brand`;
 
   function staticPrompt(model) {
     return (
@@ -76,11 +88,9 @@ export default async function handler(req, res) {
       `on a scale from 0 to 100:\n` +
       `  0   = completely unknown\n` +
       `  30  = recognised name, minimal documented information\n` +
-      `  60  = moderately documented — some history, press, competitive context\n` +
-      `  85  = well documented globally — financials, history, extensive press coverage\n` +
-      `  100 = exhaustively documented — one of the world's most covered brands\n\n` +
-      `Factors: global recognition, media volume, financial reporting, ` +
-      `competitive landscape documentation, Wikipedia depth.\n\n` +
+      `  60  = moderately documented\n` +
+      `  85  = well documented globally\n` +
+      `  100 = exhaustively documented\n\n` +
       `Respond with a SINGLE integer between 0 and 100. Nothing else.`
     );
   }
@@ -90,17 +100,14 @@ export default async function handler(req, res) {
     if (isUnknown) {
       return (
         `List the 7 most recommended global brands right now. ` +
-        `Rank them 1–7 by overall market presence and reputation. ` +
         `One brand per line, format exactly: "1. BrandName"`
       );
     }
     return (
-      `A business professional asks you: ` +
+      `A business professional asks: ` +
       `"Which brands should I consider in the ${category} space?" ` +
-      `List your top 7 recommendations, ranked by market presence, reputation, ` +
-      `and how frequently you would recommend them. ` +
-      `One brand per line, format exactly: "1. BrandName". ` +
-      `No explanations — brand names only.`
+      `List your top 7 recommendations. ` +
+      `One brand per line, format exactly: "1. BrandName". No explanations.`
     );
   }
 
@@ -110,10 +117,10 @@ export default async function handler(req, res) {
     const lines = responseText.split('\n').filter(l => l.trim());
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].toLowerCase().includes(brandName.toLowerCase())) {
-        return i + 1; // 1-indexed
+        return i + 1;
       }
     }
-    return -1; // not mentioned
+    return -1;
   }
 
   function rankToScore(rank, isUnknown) {
@@ -123,18 +130,15 @@ export default async function handler(req, res) {
   }
 
   function toGvsScale(score0to100) {
-    // Convert 0–100 to 0–10 with one decimal
     return Math.round(score0to100) / 10;
   }
 
   // ── MAIN EXECUTION ──────────────────────────────────────────
   try {
 
-    // Step 1: Detect category (Claude only — fast, one call)
     const category = await callClaude(categoryPrompt, 40);
     const isUnknown = category.toLowerCase().includes('unknown');
 
-    // Step 2: Static + Dynamic — Claude and OpenAI in PARALLEL
     const [
       claudeStaticRaw,
       openaiStaticRaw,
@@ -147,7 +151,6 @@ export default async function handler(req, res) {
       callOpenAI(dynamicPrompt(category), 220)
     ]);
 
-    // Parse static scores
     const claudeStatic = Math.min(100, Math.max(0,
       parseInt(claudeStaticRaw.replace(/\D/g, '')) || 0
     ));
@@ -156,65 +159,52 @@ export default async function handler(req, res) {
     ));
     const staticAvg = (claudeStatic + openaiStatic) / 2;
 
-    // Parse dynamic ranks
-    const claudeRank   = parseDynamicRank(claudeDynamicRaw, brandClean);
-    const openaiRank   = parseDynamicRank(openaiDynamicRaw, brandClean);
+    const claudeRank     = parseDynamicRank(claudeDynamicRaw, brandClean);
+    const openaiRank     = parseDynamicRank(openaiDynamicRaw, brandClean);
     const claudeDynScore = rankToScore(claudeRank, isUnknown);
     const openaiDynScore = rankToScore(openaiRank, isUnknown);
-    const dynamicAvg   = (claudeDynScore + openaiDynScore) / 2;
+    const dynamicAvg     = (claudeDynScore + openaiDynScore) / 2;
 
-    // Step 3: Calculate final GVS scores (0–10 scale)
     const gvsStatic  = toGvsScale(staticAvg);
     const gvsDynamic = toGvsScale(dynamicAvg);
     const gap        = Math.round((gvsDynamic - gvsStatic) * 10) / 10;
 
-    // ── MODEL BREAKDOWN ───────────────────────────────────────
     const breakdown = {
       claude: {
-        static:  toGvsScale(claudeStatic),
+        static: toGvsScale(claudeStatic),
         dynamic: toGvsScale(claudeDynScore),
         dynamic_rank: claudeRank === -1 ? 'not mentioned' : `#${claudeRank}`
       },
       openai: {
-        static:  toGvsScale(openaiStatic),
+        static: toGvsScale(openaiStatic),
         dynamic: toGvsScale(openaiDynScore),
         dynamic_rank: openaiRank === -1 ? 'not mentioned' : `#${openaiRank}`
       }
     };
 
-    // ── INTERPRETATION ────────────────────────────────────────
     let interpretation;
     if (isUnknown) {
       interpretation =
-        `"${brandClean}" is not yet well-represented in AI training data across ` +
-        `both Claude and GPT-4o. This is an early-mover opportunity — ` +
-        `building AI brand presence now costs significantly less than doing so once competitors establish themselves.`;
+        `"${brandClean}" is not yet well-represented in AI training data. ` +
+        `This is an early-mover opportunity.`;
     } else if (gap <= -3) {
       interpretation =
         `${brandClean} shows a significant negative Inference Gap of ${gap}. ` +
-        `Both Claude and GPT-4o have strong recall of the brand in training data, ` +
-        `but it underperforms in spontaneous recommendation contexts. ` +
-        `AI knows the brand — but doesn't proactively surface it when customers ask.`;
+        `Both models have strong recall but the brand underperforms in spontaneous recommendation contexts.`;
     } else if (gap < 0) {
       interpretation =
         `${brandClean} has a moderate Inference Gap of ${gap}. ` +
-        `AI recall is stronger than spontaneous recommendation — ` +
-        `a common pattern for established brands with strong legacy presence ` +
-        `but weaker recent content signals.`;
+        `AI recall is stronger than spontaneous recommendation — common for established brands.`;
     } else if (gap < 1.5) {
       interpretation =
-        `${brandClean} shows a balanced GVS profile across Claude and GPT-4o. ` +
-        `AI recall and spontaneous recommendation are closely aligned — ` +
-        `an indicator of consistent brand signal in training data.`;
+        `${brandClean} shows a balanced GVS profile. ` +
+        `AI recall and spontaneous recommendation are closely aligned.`;
     } else {
       interpretation =
         `${brandClean} shows a positive Inference Gap of +${gap}. ` +
-        `Both models recommend the brand spontaneously at higher rates ` +
-        `than parametric recall alone would predict — ` +
-        `a strong signal of active AI brand presence.`;
+        `Both models recommend the brand spontaneously at higher rates than parametric recall alone predicts.`;
     }
 
-    // ── RESPONSE ─────────────────────────────────────────────
     return res.status(200).json({
       brand: brandClean,
       category,
@@ -226,13 +216,14 @@ export default async function handler(req, res) {
       interpretation,
       methodology:
         'IBSR GVS Preview — spontaneous inference method, averaged across Claude and GPT-4o. ' +
-        'Full report: 3 LLMs × 5 markets × 50+ probes. Available on request.'
+        'Full report: 3 LLMs x 5 markets x 50+ probes. Available on request.'
     });
 
   } catch (err) {
     console.error('[IBSR scan error]', err);
     return res.status(500).json({
-      error: 'Scan failed. Please try again in a moment.'
+      error: 'Scan failed. Please try again.',
+      detail: err.message
     });
   }
 }
