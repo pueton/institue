@@ -830,6 +830,16 @@ footer{
   </div>
 </section>
 
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCAN -->
+<section id="scan">
+  ... (der komplette Block aus Schritt 4b)
+</section>
+
 <!-- PROCESS -->
 <section id="process">
   <div class="wrap">
@@ -1019,7 +1029,24 @@ document.addEventListener('keydown', e => {
     document.getElementById('impressum').style.display = 'none';
     document.getElementById('datenschutz').style.display = 'none';
   }
+})
+// ── SCAN LOGIC ───────────────────────────────────────────────
+let scanUsed = false;
+
+async function runScan() {
+  ... (der komplette neue Code)
+}
+
+// Enter key triggers scan
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('scanBrand');
+  if (input) {
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') runScan();
+    });
+  }
 });
+
 </script>
 </body>
 </html>
