@@ -486,6 +486,147 @@ footer{
   .truth-q{font-size:1.65rem}
   .cta-h2{font-size:2rem}
 }
+/* ── SCAN ───────────────────────────── */
+#scan{
+  padding:clamp(5rem,10vw,8rem) 0;
+  background:var(--bg);
+  border-top:1px solid var(--border);
+}
+.scan-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:5rem;align-items:start;
+}
+.scan-h2{
+  font-family:var(--ff-d);
+  font-size:clamp(1.9rem,4vw,3rem);
+  font-weight:500;line-height:1.2;
+  margin:1rem 0 1.2rem;
+}
+.scan-body{
+  font-size:.95rem;color:var(--text2);
+  line-height:1.8;margin-bottom:2rem;
+}
+.scan-form{
+  display:flex;flex-direction:column;gap:.75rem;
+}
+.scan-input-row{
+  display:flex;gap:.65rem;
+}
+.scan-input{
+  flex:1;background:var(--bg2);
+  border:1px solid var(--border2);
+  padding:.75rem 1rem;
+  font-family:var(--ff-b);font-size:.95rem;
+  color:var(--text);
+  outline:none;
+  transition:border-color .2s;
+}
+.scan-input:focus{border-color:rgba(196,154,60,.5)}
+.scan-input::placeholder{color:var(--text3)}
+.scan-select{
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  padding:.75rem .85rem;
+  font-family:var(--ff-m);font-size:11px;letter-spacing:.05em;
+  color:var(--text2);
+  outline:none;cursor:pointer;
+  transition:border-color .2s;
+  -webkit-appearance:none;
+  appearance:none;
+}
+.scan-select:focus{border-color:rgba(196,154,60,.5)}
+.scan-btn{
+  font-family:var(--ff-m);font-size:12px;letter-spacing:.07em;
+  background:var(--gold);color:var(--bg);
+  padding:.75rem 1.4rem;border:none;cursor:pointer;
+  transition:background .2s,opacity .2s;
+  text-align:left;
+}
+.scan-btn:hover{background:var(--gold-light)}
+.scan-btn:disabled{opacity:.45;cursor:not-allowed}
+.scan-note{
+  font-family:var(--ff-m);font-size:9.5px;letter-spacing:.08em;
+  color:var(--text3);line-height:1.6;
+}
+/* Progress */
+.scan-progress{
+  display:none;
+  flex-direction:column;gap:.6rem;
+  padding:1.5rem;
+  background:var(--bg2);
+  border:1px solid var(--border);
+}
+.prog-step{
+  display:flex;align-items:center;gap:.75rem;
+  font-family:var(--ff-m);font-size:10px;letter-spacing:.08em;
+  color:var(--text3);
+  transition:color .3s;
+}
+.prog-step.active{color:var(--gold)}
+.prog-step.done{color:var(--text2)}
+.prog-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--border2);flex-shrink:0;
+  transition:background .3s;
+}
+.prog-step.active .prog-dot{background:var(--gold);animation:pulse-dot 1s ease-in-out infinite}
+.prog-step.done .prog-dot{background:var(--text3)}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.4)}}
+/* Results */
+.scan-result{
+  display:none;
+  flex-direction:column;gap:1.25rem;
+}
+.result-scores{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;
+}
+.score-box{
+  background:var(--bg2);border:1px solid var(--border);
+  padding:1.25rem;
+}
+.score-box.gap-neg .score-val{color:#E07070}
+.score-box.gap-pos .score-val{color:#70B870}
+.score-lbl{
+  font-family:var(--ff-m);font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:.5rem;
+}
+.score-val{
+  font-family:var(--ff-d);font-size:2rem;font-weight:500;
+  color:var(--text);line-height:1;margin-bottom:.25rem;
+}
+.score-sub{font-family:var(--ff-m);font-size:9px;color:var(--text3);letter-spacing:.06em}
+.result-category{
+  font-family:var(--ff-m);font-size:9.5px;letter-spacing:.08em;
+  color:var(--text3);
+}
+.result-interp{
+  font-size:.88rem;color:var(--text2);
+  line-height:1.75;
+  border-left:2px solid rgba(196,154,60,.3);
+  padding-left:1rem;
+}
+.result-cta{
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+}
+.result-disclaimer{
+  font-family:var(--ff-m);font-size:9px;letter-spacing:.06em;
+  color:var(--text3);line-height:1.6;
+}
+.scan-error{
+  display:none;
+  font-family:var(--ff-m);font-size:11px;letter-spacing:.06em;
+  color:#E07070;
+  padding:.75rem;background:rgba(224,112,112,.06);
+  border:1px solid rgba(224,112,112,.2);
+}
+@media(max-width:900px){
+  .scan-grid{grid-template-columns:1fr;gap:3rem}
+  .result-scores{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:500px){
+  .scan-input-row{flex-direction:column}
+  .result-scores{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
