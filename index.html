@@ -708,6 +708,9 @@ async function runScan() {
       throw new Error(err.error || 'Scan failed');
     }
     const data = await res.json();
+    if (res.status === 429 || data.error) {
+  throw new Error(data.error || 'Scan failed');
+}
     document.getElementById('resStatic').textContent  = data.gvs_static.toFixed(1);
     document.getElementById('resDynamic').textContent = data.gvs_dynamic.toFixed(1);
     const gap = data.inference_gap;
@@ -729,7 +732,11 @@ async function runScan() {
     progress.style.display = 'none';
     form.style.display = 'flex';
     form.style.flexDirection = 'column';
-    showScanError(err.message || 'Something went wrong. Please try again.');
+    if (err.message && err.message.includes('limit')) {
+  showScanError('You have used your 2 free scans for today. Request the full report below.');
+} else {
+  showScanError(err.message || 'Something went wrong. Please try again.');
+}
     document.getElementById('scanBtn').disabled = false;
     scanUsed = false;
   }
