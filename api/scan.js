@@ -145,6 +145,6 @@ module.exports = async function handler(req, res) {
 
   } catch (err) {
     console.error('[scan error]', err);
-    return res.status(500).json({ error: 'Scan failed. Please try again.', detail: err.message });
+    return res.status(500).json({ error: 'Scan failed. Please try again.'});
   }
 };
