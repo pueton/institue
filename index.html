@@ -164,6 +164,22 @@ nav.ink{background:rgba(12,12,10,.94);border-bottom-color:var(--border);backdrop
 .result-cta{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
 .result-disclaimer{font-family:var(--ff-m);font-size:9px;letter-spacing:.06em;color:var(--text3);line-height:1.6;}
 .scan-error{display:none;font-family:var(--ff-m);font-size:11px;letter-spacing:.06em;color:#E07070;padding:.75rem;background:rgba(224,112,112,.06);border:1px solid rgba(224,112,112,.2);}
+
+/* ── BENCHMARK LABELS ───────────────────────────────────── */
+.score-bench{
+  font-family:var(--ff-m);font-size:8.5px;letter-spacing:.06em;
+  margin-top:.35rem;line-height:1.4;
+}
+.score-bench.pos{color:#70B870}
+.score-bench.neu{color:var(--text3)}
+.score-bench.neg{color:#E07070}
+.result-bench-note{
+  font-family:var(--ff-m);font-size:9px;letter-spacing:.06em;
+  color:var(--text3);line-height:1.6;
+  border-top:1px solid var(--border);
+  padding-top:.75rem;
+  margin-top:.25rem;
+}
 /* ── PROCESS ────────────────────────── */
 #process{padding:clamp(5rem,10vw,8rem) 0;border-top:1px solid var(--border);}
 .proc-hd .proc-h2{font-family:var(--ff-d);font-size:clamp(1.9rem,4vw,3rem);font-weight:500;line-height:1.2;margin:1rem 0 3.5rem;max-width:440px;}
@@ -378,38 +394,38 @@ footer{padding:2.5rem 0;border-top:1px solid var(--border);}
         <a href="#cta" class="btn-a">Request early access →</a>
       </div>
       <div class="idx-panel r" style="transition-delay:.2s">
-        <p class="tag" style="margin-bottom:1.6rem">IBSR General Visibility Score · 2025 preview</p>
+        <p class="tag" style="margin-bottom:1.6rem">IBSR GVS Dynamic Score · Phase 5 · N=1,415</p>
         <div class="bar-row">
-  <span class="bar-lbl">Netflix</span>
-  <div class="bar-track"><div class="bar-fill" style="width:0" data-w="86"></div></div>
-  <span class="bar-score">8.6</span>
-</div>
-<div class="bar-row">
-  <span class="bar-lbl">Apple</span>
-  <div class="bar-track"><div class="bar-fill" style="width:0" data-w="85"></div></div>
-  <span class="bar-score">8.5</span>
-</div>
-<div class="bar-row">
-  <span class="bar-lbl">Google</span>
-  <div class="bar-track"><div class="bar-fill" style="width:0" data-w="81"></div></div>
-  <span class="bar-score">8.1</span>
-</div>
-<div class="bar-row">
-  <span class="bar-lbl">Nike</span>
-  <div class="bar-track"><div class="bar-fill" style="width:0" data-w="81"></div></div>
-  <span class="bar-score">8.1</span>
-</div>
-<div class="bar-row">
-  <span class="bar-lbl">SAP</span>
-  <div class="bar-track"><div class="bar-fill" style="width:0" data-w="59"></div></div>
-  <span class="bar-score">5.9</span>
-</div>
+          <span class="bar-lbl">Netflix</span>
+          <div class="bar-track"><div class="bar-fill" style="width:0" data-w="86"></div></div>
+          <span class="bar-score">8.6</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Apple</span>
+          <div class="bar-track"><div class="bar-fill" style="width:0" data-w="85"></div></div>
+          <span class="bar-score">8.5</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Google</span>
+          <div class="bar-track"><div class="bar-fill" style="width:0" data-w="81"></div></div>
+          <span class="bar-score">8.1</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Nike</span>
+          <div class="bar-track"><div class="bar-fill" style="width:0" data-w="81"></div></div>
+          <span class="bar-score">8.1</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">SAP</span>
+          <div class="bar-track"><div class="bar-fill" style="width:0" data-w="59"></div></div>
+          <span class="bar-score">5.9</span>
+        </div>
         <div class="bar-row you" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
           <span class="bar-lbl">Your brand</span>
           <div class="bar-track" style="border:1px dashed rgba(196,154,60,.3)"><div class="bar-fill" style="width:0;background:transparent"></div></div>
           <span class="bar-score">?</span>
         </div>
-        <p class="idx-note">GVS — General Visibility Score · composite of 3 dimensions</p>
+        <p class="idx-note">Global avg: 7.7 · Top quartile: 8.6+ · Source: IBSR Phase 5</p>
       </div>
     </div>
   </div>
@@ -451,16 +467,19 @@ footer{padding:2.5rem 0;border-top:1px solid var(--border);}
               <p class="score-lbl">GVS Static</p>
               <p class="score-val" id="resStatic">—</p>
               <p class="score-sub">Parametric recall</p>
+              <p class="score-bench" id="resBenchStatic"></p>
             </div>
             <div class="score-box">
               <p class="score-lbl">GVS Dynamic</p>
               <p class="score-val" id="resDynamic">—</p>
               <p class="score-sub">Spontaneous inference</p>
+              <p class="score-bench" id="resBenchDynamic"></p>
             </div>
             <div class="score-box" id="resGapBox">
               <p class="score-lbl">Inference Gap</p>
               <p class="score-val" id="resGap">—</p>
               <p class="score-sub">Dynamic minus Static</p>
+              <p class="score-bench" id="resBenchGap"></p>
             </div>
           </div>
           <p class="result-category" id="resCategory"></p>
@@ -469,6 +488,7 @@ footer{padding:2.5rem 0;border-top:1px solid var(--border);}
             <a href="#cta" class="btn-a" style="font-size:12px;padding:.6rem 1.2rem">Request full report →</a>
             <button onclick="resetScan()" style="background:none;border:none;cursor:pointer;font-family:var(--ff-m);font-size:11px;letter-spacing:.06em;color:var(--text3);text-decoration:underline">Scan another brand</button>
           </div>
+          <p class="result-bench-note">Scores based on 1,415 brand-market measurements across 5 markets (IBSR Phase 5, 2026). Global average: GVS Static 8.4 · GVS Dynamic 7.7 · Inference Gap −0.7. Top quartile threshold: 8.6+.</p>
           <p class="result-disclaimer" id="resDisclaimer"></p>
         </div>
       </div>
@@ -658,6 +678,46 @@ document.addEventListener('keydown', e => {
   }
 });
 
+
+// ── GVS BENCHMARK DATA (Phase 5, N=1,415) ────────────────
+const GVS_BENCHMARKS = {
+  static: {
+    label: function(v) {
+      if (v >= 9.0) return { text: 'Top 10% globally', cls: 'pos' };
+      if (v >= 8.8) return { text: 'Top 25% globally', cls: 'pos' };
+      if (v >= 8.2) return { text: 'Average range', cls: 'neu' };
+      if (v >= 7.6) return { text: 'Below average', cls: 'neg' };
+      return { text: 'Bottom 10% globally', cls: 'neg' };
+    }
+  },
+  dynamic: {
+    label: function(v) {
+      if (v >= 8.8) return { text: 'Top 10% globally', cls: 'pos' };
+      if (v >= 8.6) return { text: 'Top 25% globally', cls: 'pos' };
+      if (v >= 7.0) return { text: 'Average range', cls: 'neu' };
+      if (v >= 5.9) return { text: 'Below average', cls: 'neg' };
+      return { text: 'Bottom 10% globally', cls: 'neg' };
+    }
+  },
+  gap: {
+    label: function(v) {
+      if (v > 0.2)   return { text: 'Positive — AI overrecommends', cls: 'pos' };
+      if (v >= -0.2) return { text: 'Neutral — well aligned', cls: 'neu' };
+      if (v >= -0.8) return { text: 'Moderate risk', cls: 'neg' };
+      if (v >= -2.8) return { text: 'High risk — underrecommended', cls: 'neg' };
+      return { text: 'Critical gap', cls: 'neg' };
+    }
+  }
+};
+
+function applyBenchmark(elId, type, value) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var result = GVS_BENCHMARKS[type].label(value);
+  el.textContent = result.text;
+  el.className = 'score-bench ' + result.cls;
+}
+
 // ── SCAN LOGIC ───────────────────────────────────────────────
 let scanUsed = false;
 
@@ -708,9 +768,6 @@ async function runScan() {
       throw new Error(err.error || 'Scan failed');
     }
     const data = await res.json();
-    if (res.status === 429 || data.error) {
-  throw new Error(data.error || 'Scan failed');
-}
     document.getElementById('resStatic').textContent  = data.gvs_static.toFixed(1);
     document.getElementById('resDynamic').textContent = data.gvs_dynamic.toFixed(1);
     const gap = data.inference_gap;
@@ -720,6 +777,9 @@ async function runScan() {
     gapBox.classList.toggle('gap-neg', gap < -1);
     gapBox.classList.toggle('gap-pos', gap > 1);
     document.getElementById('resCategory').textContent = 'Detected category: ' + data.category;
+    applyBenchmark('resBenchStatic',  'static',  data.gvs_static);
+    applyBenchmark('resBenchDynamic', 'dynamic', data.gvs_dynamic);
+    applyBenchmark('resBenchGap',     'gap',     data.inference_gap);
     document.getElementById('resInterp').textContent = data.interpretation;
     document.getElementById('resDisclaimer').textContent = data.methodology;
     setTimeout(() => {
@@ -732,11 +792,7 @@ async function runScan() {
     progress.style.display = 'none';
     form.style.display = 'flex';
     form.style.flexDirection = 'column';
-    if (err.message && err.message.includes('limit')) {
-  showScanError('You have used your 2 free scans for today. Request the full report below.');
-} else {
-  showScanError(err.message || 'Something went wrong. Please try again.');
-}
+    showScanError(err.message || 'Something went wrong. Please try again.');
     document.getElementById('scanBtn').disabled = false;
     scanUsed = false;
   }
